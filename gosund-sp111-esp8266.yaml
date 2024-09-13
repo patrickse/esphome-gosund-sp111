@@ -1,0 +1,158 @@
+esphome:
+  name: $name
+  friendly_name: Gosund SP111
+  # Automatically add the mac address to the name
+  # so you can use a single firmware for all devices
+  name_add_mac_suffix: true
+  project:
+    name: ps.gosund-sp111
+    version: "1.0"
+
+esp8266:
+  board: esp8285
+
+# To be able to get logs from the device via serial and api.
+logger:
+
+# Location for Dashboard Import
+dashboard_import:
+  package_import_url: github://patrickse/esphome-gosund-sp111/project-template-esp8266.yaml
+  import_full_config: false # or true
+
+# API is a requirement of the dashboard import.
+api:
+
+# OTA is required for Over-the-Air updating
+ota:
+  - platform: esphome
+
+wifi:
+  # Set up a wifi access point using the device name above
+  ap:
+    ssid: $name
+    password: "12345678"
+
+# In combination with the `ap` this allows the user
+# to provision wifi credentials to the device.
+captive_portal:
+
+# Sets up the improv serial Wi-Fi provisioning
+improv_serial:
+
+web_server:
+  port: 80
+
+##########################
+# Specific Configuration
+##########################
+
+text_sensor:
+  - platform: version
+    name: "${devicename} - Version"
+    icon: mdi:cube-outline
+
+binary_sensor:
+  - platform: status
+    name: "${devicename} - Status"
+    device_class: connectivity
+
+  # toggle relay on/off
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: True
+    id: "${devicename}_button_state"
+    on_press:
+      - switch.toggle: button_switch
+
+sensor:
+  - platform: wifi_signal
+    name: "${devicename} - Wifi Signal"
+    update_interval: 60s
+    icon: mdi:wifi
+
+  - platform: uptime
+    name: "${devicename} - Uptime"
+    update_interval: 60s
+    icon: mdi:clock-outline
+
+  - platform: total_daily_energy
+    name: "${devicename} - Todays Usage"
+    power_id: "power_wattage"
+    filters:
+      # Multiplication factor from W to kW is 0.001
+      - multiply: 0.001
+    unit_of_measurement: kWh
+    icon: mdi:calendar-clock
+
+  - platform: adc
+    pin: VCC
+    name: "${devicename} - VCC Volt"
+    icon: mdi:flash-outline
+
+  - platform: hlw8012
+    sel_pin:
+      number: GPIO12
+      inverted: True
+    cf_pin: GPIO05
+    cf1_pin: GPIO04
+    change_mode_every: 4
+    current_resistor: ${current_res}
+    voltage_divider: ${voltage_div}
+    update_interval: 3s
+
+    current:
+      name: "${devicename} - Ampere"
+      unit_of_measurement: A
+      accuracy_decimals: 3
+      icon: mdi:current-ac
+
+    voltage:
+      name: "${devicename} - Volt"
+      unit_of_measurement: V
+      accuracy_decimals: 1
+      icon: mdi:flash-outline
+
+    power:
+      name: "${devicename} - Watt"
+      unit_of_measurement: W
+      id: "power_wattage"
+      icon: mdi:gauge
+
+## TODO Make light configurable
+
+#light:
+#  - platform: status_led
+#    name: "Switch state"
+#    pin: GPIO02
+#    id: led_blue
+    
+#light:
+#  - platform: status_led
+#    name: "Switch state"
+#    pin: GPIO02
+#    id: led_blue
+
+#output:
+#  - platform: gpio
+#    pin: GPIO00
+#    inverted: true
+#    id: led_red
+
+
+switch:
+  - platform: template
+    name: "${devicename} - Switch"
+    icon: mdi:power
+    optimistic: true
+    id: button_switch
+    turn_on_action:
+      - switch.turn_on: relay
+#      - light.turn_off: led_blue # TODO make light configurable
+    turn_off_action:
+      - switch.turn_off: relay
+#      - light.turn_on: led_blue # TODO make light configurable
+  - platform: gpio
+    pin: GPIO15
+    id: relay
